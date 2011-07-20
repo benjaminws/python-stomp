@@ -19,7 +19,7 @@ class Client(object):
         >>> from stompy.simple import Client
         >>> stomp = Client()
         >>> stomp.connect()
-        >>> stomp.send("The quick brown fox...", destination="/queue/test")
+        >>> stomp.put("The quick brown fox...", destination="/queue/test")
         >>> stomp.subscribe("/queue/test")
         >>> message = stomp.get_nowait()
         >>> message.body
@@ -35,17 +35,19 @@ class Client(object):
         self.stomp = Stomp(host, port)
         self._current_transaction = None
 
-    def get(self, block=True):
+    def get(self, block=True, callback=None):
         """Get message.
 
         :keyword block: Block if necessary until an item is available.
             If this is ``False``, return an item if one is immediately
             available, else raise the :exc:`Empty` exception.
 
+        :keyword callback: Optional function to execute when message recieved.
+
         :raises Empty: If ``block`` is off and no message was receied.
 
         """
-        frame = self.stomp.receive_frame(nonblocking=not block)
+        frame = self.stomp.receive_frame(nonblocking=not block, callback=callback)
         if frame is None and not block:
             raise self.Empty()
         return frame
@@ -78,11 +80,12 @@ class Client(object):
 
         return self.stomp.send(conf)
 
-    def connect(self, username=None, password=None):
+    def connect(self, username=None, password=None, clientid=None):
         """Connect to the broker.
 
         :keyword username: Username for connection
         :keyword password: Password for connection
+        :keyword clientid: Client identification for persistent connections
 
         :raises :exc:`stompy.stomp.ConnectionError`:
             if the connection was unsuccessful.
@@ -90,7 +93,7 @@ class Client(object):
             if the connection timed out.
 
         """
-        self.stomp.connect(username=username, password=password)
+        self.stomp.connect(username=username, password=password, clientid=clientid)
 
     def disconnect(self):
         """Disconnect from the broker."""

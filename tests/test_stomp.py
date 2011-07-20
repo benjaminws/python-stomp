@@ -141,6 +141,12 @@ class WhenConsumingMessages(DingusTestCase(Stomp)):
         assert built_frame_args['command'] == 'ACK'
         assert self.frame.calls('send_frame', send_args.as_string())
 
+    def should_register_callback(self):
+        callback_func = lambda message: 'pass'
+        this_frame = self.stomp.receive_frame(callback=callback_func)
+        assert self.stomp.frame.calls('get_message')
+        assert isinstance(self.stomp._callback, type(callback_func))
+
     def should_unsubscribe(self):
         self.stomp.unsubscribe({'destination': '/queue/nose-test'})
         built_frame = self.frame.calls('build_frame', DontCare).one()

@@ -39,7 +39,18 @@ class WhenSettingUp(DingusTestCase(Frame)):
         sendall = self.frame.sock.calls('sendall', DontCare).one().args[0]
 
         assert self.frame.session is not None
-        assert 'CONNECT' in sendall
+        assert 'login:test' in sendall
+
+    def should_set_client_id(self):
+        self.frame._getline = Dingus()
+        self.frame._getline.return_value = \
+            'CONNECTED\nsession:ID:nose-session123\n\n\x00\n'
+        self.frame.connect(self.sockobj.connect('localhost', 99999),
+                                                clientid="test")
+        sendall = self.frame.sock.calls('sendall', DontCare).one().args[0]
+
+        assert self.frame.session is not None
+        assert 'client-id:test' in sendall
 
 
 class WhenSendingFrames(DingusTestCase(Frame)):

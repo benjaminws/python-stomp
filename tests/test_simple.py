@@ -83,11 +83,11 @@ class WhenUsingSimpleClient(DingusTestCase(Client,
 
     def should_get_message(self):
         self.client.get()
-        assert self.client.stomp.calls('receive_frame', nonblocking=False)
+        assert self.client.stomp.calls('receive_frame', nonblocking=False, callback=None)
 
     def should_get_message_without_blocking(self):
         self.client.get_nowait()
-        assert self.client.stomp.calls('receive_frame', nonblocking=True)
+        assert self.client.stomp.calls('receive_frame', nonblocking=True, callback=None)
 
     def should_not_get_message(self):
         self.client.stomp.receive_frame.return_value = None

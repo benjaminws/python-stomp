@@ -1,6 +1,6 @@
 """Implementation of the STOMP protocol in Python.
 """
-VERSION = (0, 2, 4)
+VERSION = (0, 2, 9)
 __version__ = ".".join(map(str, VERSION))
 __author__ = "Benjamin W. Smith"
 __contact__ = "benjaminwarfield@just-another.net"

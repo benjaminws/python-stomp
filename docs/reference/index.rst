@@ -6,7 +6,7 @@
 :Date: |today|
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 4
   
     stompy.stomp
     stompy.frame 

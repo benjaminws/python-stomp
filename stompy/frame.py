@@ -1,7 +1,7 @@
 import socket
 import random
 from pprint import pformat
-from errno import EAGAIN
+from errno import EAGAIN, EWOULDBLOCK
 from Queue import Queue
 from Queue import Empty as QueueEmpty
 
@@ -66,21 +66,28 @@ class Frame(object):
         self.iqueue = IntermediateMessageQueue()
         self.rqueue = Queue()
 
-    def connect(self, sock, username=None, password=None):
+    def connect(self, sock, username=None, password=None, clientid=None):
         """Connect to the STOMP server and get the session id.
 
         :param sock: Socket object from stompy.stomp.Stomp.
         :keyword username: Username for connection.
         :keyword password: Password for connection.
+        :keyword clientid: Client identification for persistent connections
 
         """
         self.sock = sock
+
+        headers = {}
+
         if username and password:
-            frame = self.build_frame({"command": "CONNECT",
-                                      "headers": {'login': username,
-                                                  'passcode': password}})
-        else:
-            frame = self.build_frame({"command": "CONNECT", "headers": {}})
+            headers.update({'login': username,
+                           'passcode': password})
+	
+        if clientid:        
+            headers.update({'client-id' : clientid})
+
+                    
+        frame = self.build_frame({"command": "CONNECT", "headers": headers})
 
         self.send_frame(frame.as_string())
 
@@ -259,10 +266,12 @@ class Frame(object):
             while not buffer.endswith('\x00'):
                 try:
                     partial = self.sock.recv(1)
+                    if not partial or partial == '':
+                        raise UnknownBrokerResponseError('empty reply')
                 except socket.error, exc:
-                    if exc[0] == EAGAIN:
+                    if exc[0] == EAGAIN or exc[0] == EWOULDBLOCK:
                         if not buffer or buffer == '\n':
-                            return None
+                            raise UnknownBrokerResponseError('empty reply')
                         continue
                 buffer += partial
         finally:

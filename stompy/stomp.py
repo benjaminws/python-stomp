@@ -32,18 +32,20 @@ class Stomp(object):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._subscribed_to = {}
         self._subscribed = None
+        self._callback = None
         self.connected = None
         self.frame = Frame()
 
-    def connect(self, username=None, password=None):
+    def connect(self, username=None, password=None, clientid=None):
         """Connect to STOMP server.
 
         :keyword username: Username for connection
         :keyword password: Password for connection
+        :keyword clientid: Client identification for persistent connections
         """
         try:
             self.sock.connect((self.host, self.port))
-            self.frame.connect(self.sock, username=username, password=password)
+            self.frame.connect(self.sock, username=username, password=password, clientid=clientid)
         except socket.timeout, exc:
             raise self.ConnectionTimeoutError(*exc.args)
         except socket.error, exc:
@@ -60,6 +62,7 @@ class Stomp(object):
             pass
         try:
             self.sock.shutdown(0)
+            self.sock.close()
         except socket.error, exc:
             # likely wasn't connected
             pass
@@ -100,7 +103,7 @@ class Stomp(object):
         In the case of ActiveMQ, you could do this:
 
             >>> stomp.subscribe({'destination':'/queue/foo',
-        ...                      'ack':'client'})
+            ...                  'ack':'client'})
         """
         destination = conf["destination"]
         self._send_command("SUBSCRIBE", conf)
@@ -171,13 +174,15 @@ class Stomp(object):
         message_id = frame.headers.get('message-id')
         self._send_command("ACK", {"message-id": message_id})
 
-    def receive_frame(self, nonblocking=False):
+    def receive_frame(self, callback=None, nonblocking=False):
         """Get a frame from the STOMP server
 
         :keyword nonblocking: By default this function waits forever
             until there is a message to be received, however, in non-blocking
             mode it returns ``None`` if there is currently no message
             available.
+
+        :keyword callback: Optional function to execute when message recieved.
 
         Note that you must be subscribed to one or more destinations.
         Use :meth:`subscribe` to subscribe to a topic/queue.
@@ -199,11 +204,18 @@ class Stomp(object):
 
         """
         self._connected_or_raise()
-        return self.frame.get_message(nb=nonblocking)
+        self._callback = callback
+        message = None
+        if self._callback:
+            message = self.frame.get_message(nb=nonblocking)
+            self._callback(message)
+            return
+        else:
+            return self.frame.get_message(nb=nonblocking)
 
-    def poll(self):
+    def poll(self, callback=None):
         """Alias to :meth:`receive_frame` with ``nonblocking=True``."""
-        return self.receive_frame(nonblocking=True)
+        return self.receive_frame(nonblocking=True, callback=callback)
 
     def send_frame(self, frame):
         """Send a custom frame to the STOMP server
@@ -237,7 +249,7 @@ class Stomp(object):
 
     def _connected_or_raise(self):
         if not self.connected:
-            raise self.NotConnectedError("Not connected to STOMP server.")
+            raise self.NotConnectedError("Not connected to STOMP broker.")
 
     @property
     def subscribed(self):
