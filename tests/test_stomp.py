@@ -196,12 +196,12 @@ class WhenNotConnected(TestCase):
 class WhenSocketCantConnect(TestCase):
 
     def should_fail_connect(self):
-        self.stomp = Stomp('localhost', 99999)
+        self.stomp = Stomp('localhost', 65535)
         self.failUnlessRaises(self.stomp.ConnectionError, self.stomp.connect)
 
     def should_fail_connect_with_timeout(self):
         import socket
         socket.setdefaulttimeout(.5)
-        self.stomp = Stomp('10.10.0.0', 99999)
+        self.stomp = Stomp('10.10.0.0', 65535)
         self.failUnlessRaises(self.stomp.ConnectionTimeoutError,
             self.stomp.connect)

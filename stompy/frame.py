@@ -82,11 +82,11 @@ class Frame(object):
         if username and password:
             headers.update({'login': username,
                            'passcode': password})
-	
-        if clientid:        
+
+        if clientid:
             headers.update({'client-id' : clientid})
 
-                    
+
         frame = self.build_frame({"command": "CONNECT", "headers": headers})
 
         self.send_frame(frame.as_string())
@@ -247,7 +247,12 @@ class Frame(object):
         :param frame: :class:`Frame` instance to pass across the socket
 
         """
-        self.sock.sendall(frame)
+
+        self.sock.setblocking(True)
+        try:
+            self.sock.sendall(frame)
+        finally:
+            self.sock.setblocking(False)
 
         if 'receipt' in self.headers:
             return self.get_reply()
